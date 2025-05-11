@@ -1,0 +1,262 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+//   output   = "../generated/prisma"  
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String   @unique
+  password  String
+  role      Role     @default(CLIENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isPremium Boolean  @default(false)
+  isActive  Boolean  @default(true)
+
+  // password details  --> updated during conference registration or subscriptions
+  passportNo      String?
+  passportCountry String?
+  dateOfBirth     DateTime?
+  phoneNumber     String?
+
+  registrations Registration[]
+  payments      Payment[]
+  Token         Token[]
+  Document      Document[]
+  Report        Report[]
+  Subscription  Subscription[]
+  Post          Post[]
+}
+
+model Conference {
+  id                            String             @id @default(uuid())
+  name                          String
+  image                         String?
+  topic                         String?
+  date                          DateTime?
+  city                          String?
+  country                       String?
+  earlyBirdRegistrationDeadline DateTime?
+  paperSubmissionDeadline       DateTime?
+  registrationDeadline          DateTime?
+  exactDate                     DateTime?
+  objective                     String?
+  registration                  String?
+  callForPapers                 String?
+  paperSubmission               String?
+  programSchedule               String?
+  venue                         String?
+  keynoteSpeakers               String?
+  termsAndConditions            String?
+  status                        ConferenceStatus   @default(DRAFT)
+  registrationTypes             RegistrationType[]
+  createdAt                     DateTime           @default(now())
+  updatedAt                     DateTime           @updatedAt
+  Registration                  Registration[]
+
+  @@map("conferences")
+}
+
+model RegistrationType {
+  id             String         @id @default(uuid())
+  name           String
+  description    String?
+  price          Int
+  availableFrom  DateTime?
+  availableUntil DateTime?
+  maxSlots       Int?
+  conference     Conference     @relation(fields: [conferenceId], references: [id], onDelete: Cascade)
+  conferenceId   String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  Registration   Registration[]
+
+  @@map("registration_types")
+}
+
+model Registration {
+  id                 String             @id @default(uuid())
+  user               User               @relation(fields: [userId], references: [id])
+  userId             String
+  conference         Conference         @relation(fields: [conferenceId], references: [id], onDelete: Cascade)
+  conferenceId       String
+  registrationType   RegistrationType   @relation(fields: [registrationTypeId], references: [id], onDelete: Cascade)
+  registrationTypeId String
+  status             RegistrationStatus @default(PENDING)
+  token              String?            @unique
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  paymentId String  @unique
+
+  @@map("registrations")
+}
+
+model Payment {
+  id                String         @id @default(uuid())
+  userId            String
+  currency          Currency
+  amount            Int
+  purpose           PaymentPurpose
+  status            PaymentStatus  @default(PENDING)
+  paymentGatewayRef String?
+  paidAt            DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  registration Registration?
+  subscription Subscription?
+
+  @@index([userId])
+}
+
+model Document {
+  id           String   @id @default(uuid())
+  name         String?
+  fileUrl      String?
+  documentType String?
+  userId       String
+  verified     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+  Report       Report?
+}
+
+model Report {
+  id            String   @id @default(uuid())
+  userId        String
+  successRate   Int
+  reportDetails String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId    String   @unique
+  User          User     @relation(fields: [userId], references: [id])
+}
+
+model Subscription {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  status    SubscriptionStatus @default(NOT_ACTIVE) // ACTIVE, EXPIRED, etc.
+  price     Float
+  paidAt    DateTime
+  startDate DateTime?
+  endDate   DateTime?
+
+  payment   Payment @relation(fields: [paymentId], references: [id])
+  paymentId String  @unique // Nullable for now
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// model FileUpload {
+//   id        String   @id @default(uuid())
+//   filename  String
+//   url       String
+//   mimeType  String
+//   size      Int
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+// }
+
+model Token {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  type      TokenType
+  expires   DateTime
+  createdAt DateTime  @default(now())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  title       String   @unique
+  imageUrl    String?
+  content     String
+  short_intro String?
+  tags        String[]
+  published   Boolean
+
+  user     User   @relation(fields: [authorId], references: [id])
+  authorId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  CLIENT
+  ADMIN
+}
+
+enum ConferenceStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// enum VisualStatus {
+//   DRAFT
+//   PUBLISHED
+//   ARCHIVED
+// }
+
+enum RegistrationStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum PaymentPurpose {
+  CONFERENCE
+  SUBSCRIPTION
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+enum Currency {
+  NGN
+}
+
+enum TokenType {
+  ACCESS
+  REFRESH
+  RESET_PASSWORD
+  VERIFY_EMAIL
+}
+
+enum SubscriptionStatus {
+  NOT_ACTIVE
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
