@@ -1,41 +1,37 @@
 // src/auth/token.service.ts
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { ConfigService } from "@nestjs/config";
 // import { Token, TokenType, User } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
-import * as ms from 'ms';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { User } from 'src/users/entities/users.entity';
-import { Token, TokenType } from '@prisma/client';
+import { v4 as uuidv4 } from "uuid";
+import * as ms from "ms";
+import { PrismaService } from "src/prisma/prisma.service";
+import { User } from "src/users/entities/users.entity";
+import { Token, TokenType } from "@prisma/client";
 
 @Injectable()
 export class TokenService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService
   ) {}
 
   async generateAuthTokens(
-    user: User,
+    user: User
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const accessToken = await this.generateToken(
       user,
       TokenType.ACCESS,
-      this.configService.get<string>('JWT_SECRET') as string,
-      this.configService.get<string>('JWT_ACCESS_EXPIRATION') || '15m',
+      this.configService.get<string>("JWT_SECRET") as string,
+      this.configService.get<string>("JWT_ACCESS_EXPIRATION") || "15m"
     );
 
     const refreshToken = await this.generateToken(
       user,
       TokenType.REFRESH,
-      this.configService.get<string>('JWT_SECRET') as string,
-      this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '7d',
+      this.configService.get<string>("JWT_SECRET") as string,
+      this.configService.get<string>("JWT_REFRESH_EXPIRATION") || "7d"
     );
 
     // Store the refresh token in the database
@@ -43,7 +39,7 @@ export class TokenService {
       refreshToken.token,
       TokenType.REFRESH,
       user.id,
-      refreshToken.expires,
+      refreshToken.expires
     );
 
     return {
@@ -53,18 +49,18 @@ export class TokenService {
   }
 
   async refreshAuthToken(
-    refreshToken: string,
+    refreshToken: string
   ): Promise<{ accessToken: string }> {
     const tokenDoc = await this.prisma.token.findUnique({
       where: { token: refreshToken },
     });
 
     if (!tokenDoc || tokenDoc.type !== TokenType.REFRESH) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException("Invalid refresh token");
     }
 
     if (new Date() > tokenDoc.expires) {
-      throw new UnauthorizedException('Refresh token expired');
+      throw new UnauthorizedException("Refresh token expired");
     }
 
     const user = await this.prisma.user.findUnique({
@@ -72,14 +68,14 @@ export class TokenService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException("User not found");
     }
 
     const accessToken = await this.generateToken(
       user,
       TokenType.ACCESS,
-      this.configService.get<string>('JWT_SECRET') as string,
-      this.configService.get<string>('JWT_ACCESS_EXPIRATION') || '15m',
+      this.configService.get<string>("JWT_SECRET") as string,
+      this.configService.get<string>("JWT_ACCESS_EXPIRATION") || "15m"
     );
 
     return { accessToken: accessToken.token };
@@ -89,8 +85,8 @@ export class TokenService {
     return this.generateToken(
       user,
       TokenType.VERIFY_EMAIL,
-      this.configService.get<string>('JWT_SECRET') as string,
-      this.configService.get<string>('EMAIL_VERIFICATION_EXPIRATION') || '24h',
+      this.configService.get<string>("JWT_SECRET") as string,
+      this.configService.get<string>("EMAIL_VERIFICATION_EXPIRATION") || "24h"
     );
   }
 
@@ -98,8 +94,8 @@ export class TokenService {
     return this.generateToken(
       user,
       TokenType.RESET_PASSWORD,
-      this.configService.get<string>('JWT_SECRET') as string,
-      this.configService.get<string>('PASSWORD_RESET_EXPIRATION') || '1h',
+      this.configService.get<string>("JWT_SECRET") as string,
+      this.configService.get<string>("PASSWORD_RESET_EXPIRATION") || "1h"
     );
   }
 
@@ -118,7 +114,7 @@ export class TokenService {
     token: string,
     type: TokenType,
     userId: string,
-    expires: Date,
+    expires: Date
   ): Promise<Token> {
     // Delete existing tokens of the same type for the user
     await this.deleteUserTokens(userId, type);
@@ -139,7 +135,7 @@ export class TokenService {
     user: User,
     type: TokenType,
     secret: string,
-    expiration: string,
+    expiration: string
   ): Promise<{ token: string; expires: Date }> {
     const expiresIn = ms(expiration);
     const expires = new Date(Date.now() + expiresIn);
@@ -154,7 +150,7 @@ export class TokenService {
       {
         secret,
         expiresIn: Math.floor(expiresIn / 1000),
-      },
+      }
     );
 
     return { token, expires };
