@@ -5,7 +5,6 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix("api/v2");
 
   // Apply validation pipe globally
   app.useGlobalPipes(
@@ -19,15 +18,15 @@ async function bootstrap() {
   // Enable CORS
   app.enableCors({
     origin: [
-      // "http://localhost:3000",
-      // "http://localhost:5174",
-      "https://globalvisaconference.com",
       "https://dashboard.globalvisaconference.com",
-    ], // Replace with your frontend's URL
+      "https://globalvisaconference.com",
+    ],
     credentials: true, // Allow cookies to be sent
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   });
+
+  app.setGlobalPrefix("api/v2");
 
   // Enable global serialization
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
