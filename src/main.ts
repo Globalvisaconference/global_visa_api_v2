@@ -19,10 +19,10 @@ async function bootstrap() {
   // Enable CORS
   app.enableCors({
     origin: [
-      "http://localhost:3000",
-      "http://localhost:5174",
+      // "http://localhost:3000",
+      // "http://localhost:5174",
       "https://globalvisaconference.com",
-      "https://dashboard.globalvisaconference.com",
+      "https://dashboard.globalvisaconference.com/",
     ], // Replace with your frontend's URL
     credentials: true, // Allow cookies to be sent
   });
