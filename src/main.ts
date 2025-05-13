@@ -22,9 +22,11 @@ async function bootstrap() {
       // "http://localhost:3000",
       // "http://localhost:5174",
       "https://globalvisaconference.com",
-      "https://dashboard.globalvisaconference.com/",
+      "https://dashboard.globalvisaconference.com",
     ], // Replace with your frontend's URL
     credentials: true, // Allow cookies to be sent
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   });
 
   // Enable global serialization
