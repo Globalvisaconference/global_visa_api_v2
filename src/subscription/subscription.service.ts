@@ -3,30 +3,30 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-} from '@nestjs/common';
-import { CreateSubscriptionDto } from './dto/create-subscription.dto';
-import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { PaymentsService } from 'src/payments/payments.service';
+} from "@nestjs/common";
+import { CreateSubscriptionDto } from "./dto/create-subscription.dto";
+import { UpdateSubscriptionDto } from "./dto/update-subscription.dto";
+import { PrismaService } from "src/prisma/prisma.service";
+import { PaymentsService } from "src/payments/payments.service";
 import {
   Currency,
   PaymentPurpose,
   Prisma,
   SubscriptionStatus,
-} from '@prisma/client';
-import { createHash } from 'crypto';
-import { QuerySubscriptionDto } from './dto/query-subscription.dto';
-import { Subscription } from './entities/subscription.entity';
+} from "@prisma/client";
+import { createHash } from "crypto";
+import { QuerySubscriptionDto } from "./dto/query-subscription.dto";
+import { Subscription } from "./entities/subscription.entity";
 
 @Injectable()
 export class SubscriptionService {
   constructor(
     private prisma: PrismaService,
-    private readonly paymentService: PaymentsService,
+    private readonly paymentService: PaymentsService
   ) {}
 
-  async create(userId: string, priceData: { price: number }) {
-    const price = priceData.price;
+  async create(subscriptionData: CreateSubscriptionDto) {
+    const price = subscriptionData.price;
     // console.log('Creating subscription:', subscriptionData);
     // console.log('User ID:', userId);
 
@@ -34,51 +34,51 @@ export class SubscriptionService {
       //  verify no existing subscription
       const existingSubscription = await this.prisma.subscription.findFirst({
         where: {
-          userId,
-          status: 'ACTIVE',
+          userId: subscriptionData.userId,
+          status: "ACTIVE",
         },
       });
 
       if (existingSubscription) {
         throw new BadRequestException(
-          'User already has an active subscription',
+          "User already has an active subscription"
         );
       }
 
       const payment = await this.paymentService.create({
-        userId,
-        amount: priceData?.price,
+        userId: subscriptionData.userId,
+        amount: subscriptionData?.price,
         currency: Currency.NGN,
         purpose: PaymentPurpose.SUBSCRIPTION,
       });
 
       if (!payment) {
-        throw new BadRequestException('Error processing payment');
+        throw new BadRequestException("Error processing payment");
       }
 
       const subscription = await this.prisma.subscription.create({
         data: {
-          userId,
+          userId: subscriptionData.userId,
           paymentId: payment.id,
-          price: priceData?.price,
+          price: subscriptionData?.price,
           paidAt: new Date(),
         },
       });
 
       if (!subscription) {
-        throw new BadRequestException('Error creating subscription');
+        throw new BadRequestException("Error creating subscription");
       }
 
       return {
-        status: 'success',
-        message: 'Subscription created successfully',
+        status: "success",
+        message: "Subscription created successfully",
         data: {
           paymentLink: payment.paymentLink,
           subscription,
         },
       };
     } catch (error) {
-      console.log('Error creating subscription:', error.message);
+      console.log("Error creating subscription:", error.message);
 
       return new InternalServerErrorException(error.message);
     }
@@ -103,7 +103,7 @@ export class SubscriptionService {
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         user: true,
         payment: true,
@@ -152,7 +152,7 @@ export class SubscriptionService {
 
     if (!subscription) {
       throw new NotFoundException(
-        `Active subscription for user with ID ${userId} not found`,
+        `Active subscription for user with ID ${userId} not found`
       );
     }
 
@@ -171,8 +171,8 @@ export class SubscriptionService {
     });
 
     return {
-      status: 'success',
-      message: 'Subscription deleted successfully',
+      status: "success",
+      message: "Subscription deleted successfully",
     };
   }
 }
