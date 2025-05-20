@@ -6,11 +6,11 @@ import {
   ValidateNested,
   IsArray,
   IsDate,
-} from 'class-validator';
-import { Transform, Type } from 'class-transformer';
-import { CreateRegistrationTypeDto } from 'src/registration-type/dto/create-registration-types.dto';
-import { ConferenceStatus } from '@prisma/client';
-import { ApiProperty } from '@nestjs/swagger';
+} from "class-validator";
+import { Transform, Type } from "class-transformer";
+import { CreateRegistrationTypeDto } from "src/registration-type/dto/create-registration-types.dto";
+import { ConferenceStatus } from "@prisma/client";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class CreateConferenceDto {
   @ApiProperty()
@@ -20,7 +20,7 @@ export class CreateConferenceDto {
   @ApiProperty()
   @IsString()
   @IsOptional()
-  image?: string | any;
+  image?: string | null;
 
   @ApiProperty()
   @IsString()
